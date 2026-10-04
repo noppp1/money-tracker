@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Money Tracker</title>
+<meta name="theme-color" content="#1f7a5c">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Money Tracker">
+
+<style>
+:root{--bg:#f3f6f4;--card:#fff;--ink:#1d2b26;--mute:#66756e;--line:#dde5e1;--acc:#1f7a5c;--bad:#b3402f}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.4 Georgia,serif}
+main{max-width:520px;margin:0 auto;padding:16px 16px 40px}
+h1{font-size:22px;margin:0}
+h2{font-size:17px;margin:20px 0 8px}
+header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+input,select,button{font:inherit;color:inherit}
+input,select{width:100%;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:11px 12px}
+select.cur{width:auto;padding:6px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;margin-bottom:14px}
+.row{display:flex;gap:10px}
+.sum{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
+.sum div{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px}
+.sum small{color:var(--mute);display:block;font-size:12px}
+.sum b{font-size:17px;word-break:break-all}
+.save b{color:var(--acc)}.neg b{color:var(--bad)}
+form{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.full{grid-column:1/-1}
+.btn{background:var(--acc);color:#fff;border:0;border-radius:10px;padding:12px;font-weight:bold;cursor:pointer}
+#pie{display:block;margin:0 auto;width:220px;height:220px}
+.lg{display:flex;align-items:center;gap:8px;padding:5px 0;font-size:15px}
+.lg i{width:12px;height:12px;border-radius:3px;flex:none}
+.lg span{flex:1}
+ul{list-style:none;margin:0;padding:0}
+li{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
+li .m{flex:1;min-width:0}
+li .m span{display:block;font-size:13px;color:var(--mute)}
+li button{background:none;border:0;color:var(--bad);font-size:20px;cursor:pointer}
+.empty{color:var(--mute)}
+</style>
+</head>
+<body>
+<main>
+<header><h1>Money Tracker</h1>
+<select class="cur" id="cur"><option>₹</option><option>$</option><option>€</option><option>£</option></select></header>
+
+<div class="card">
+  <label for="mon">Month</label>
+  <input id="mon" type="month">
+</div>
+
+<div class="card">
+  <label for="sal">Salary for this month</label>
+  <div class="row"><input id="sal" type="number" inputmode="decimal" min="0" placeholder="e.g. 30000"><button class="btn" id="setsal" type="button">Save</button></div>
+</div>
+
+<div class="sum">
+  <div><small>Salary</small><b id="sSal">0</b></div>
+  <div><small>Spent</small><b id="sSp">0</b></div>
+  <div class="save" id="sv"><small>Savings</small><b id="sSv">0</b></div>
+</div>
+
+<form class="card" id="f">
+  <input class="full" id="amt" type="number" inputmode="decimal" step="0.01" min="0" placeholder="Expense amount" required>
+  <select id="cat"><option>Regular grocery shopping</option><option>Extra shopping</option><option>Eating outside</option><option>Home expenses</option><option>Travel</option><option>Study</option><option>Rent</option><option>Bills</option><option>Health</option><option>Other</option></select>
+  <input id="date" type="date" required>
+  <input class="full" id="note" type="text" placeholder="Note (optional)">
+  <button class="btn full" type="submit">Add expense</button>
+</form>
+
+<h2>Where my money went</h2>
+<div class="card">
+  <svg id="pie" viewBox="-1 -1 2 2" role="img" aria-label="Pie chart of expenses by category"></svg>
+  <div id="legend"></div>
+</div>
+
+<h2>Expenses this month</h2>
+<ul id="list"></ul>
+</main>
+<script>
+var COLORS=["#1f7a5c","#e0a030","#4a78c2","#c2503f","#8a5cc2","#3fb0b8","#d4739a","#7f8c4a","#a0693a","#5b6b73","#c9b037","#2f9e44"];
+var items=[],sals={},cur="₹";
+function load(){try{items=JSON.parse(localStorage.getItem("mt-items")||"[]");var s=JSON.parse(localStorage.getItem("mt-sals")||"{}");sals=(s&&typeof s==="object")?s:{};cur=localStorage.getItem("mt-cur")||"₹"}catch(e){}}
+function store(){try{localStorage.setItem("mt-items",JSON.stringify(items));localStorage.setItem("mt-sals",JSON.stringify(sals));localStorage.setItem("mt-cur",cur)}catch(e){}}
+function money(n){return cur+n.toLocaleString(undefined,{maximumFractionDigits:2})}
+function today(){var d=new Date();d.setMinutes(d.getMinutes()-d.getTimezoneOffset());return d.toISOString().slice(0,10)}
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
+function ym(){return document.getElementById("mon").value||today().slice(0,7)}
+function pt(a){return Math.cos(a).toFixed(4)+" "+Math.sin(a).toFixed(4)}
+function pie(by,tot){
+  var svg=document.getElementById("pie"),keys=Object.keys(by).sort(function(a,b){return by[b]-by[a]}),h="",a0=-Math.PI/2;
+  if(!keys.length){svg.innerHTML='<circle r="1" fill="#dde5e1"/>';return keys}
+  if(keys.length===1){svg.innerHTML='<circle r="1" fill="'+COLORS[0]+'"/>';return keys}
+  keys.forEach(function(k,i){var a1=a0+by[k]/tot*2*Math.PI;
+    h+='<path d="M0 0 L'+pt(a0)+' A1 1 0 '+(a1-a0>Math.PI?1:0)+' 1 '+pt(a1)+' Z" fill="'+COLORS[i%12]+'" stroke="#fff" stroke-width=".02"/>';a0=a1});
+  svg.innerHTML=h;return keys;
+}
+function render(){
+  var m=ym(),mo=items.filter(function(x){return x.d.slice(0,7)===m}),salary=sals[m]||0;
+  var tot=mo.reduce(function(s,x){return s+x.a},0),left=salary-tot;
+  document.getElementById("sSal").textContent=money(salary);
+  document.getElementById("sSp").textContent=money(tot);
+  document.getElementById("sSv").textContent=money(left);
+  document.getElementById("sv").className=left<0?"neg":"save";
+  var by={};mo.forEach(function(x){by[x.c]=(by[x.c]||0)+x.a});
+  var keys=pie(by,tot);
+  document.getElementById("legend").innerHTML=keys.length?keys.map(function(k,i){
+    return '<div class="lg"><i style="background:'+COLORS[i%12]+'"></i><span>'+esc(k)+'</span><b>'+money(by[k])+' ('+Math.round(by[k]/tot*100)+'%)</b></div>'}).join(""):'<p class="empty">No expenses in this month yet.</p>';
+  var rec=mo.slice().sort(function(a,b){return b.d.localeCompare(a.d)||b.id-a.id});
+  document.getElementById("list").innerHTML=rec.length?rec.map(function(x){
+    return '<li><div class="m">'+esc(x.c)+'<span>'+esc(x.d)+(x.n?' · '+esc(x.n):'')+'</span></div><b>'+money(x.a)+'</b><button aria-label="Delete" data-id="'+x.id+'">×</button></li>'}).join(""):'<p class="empty">Nothing added for this month.</p>';
+}
+function syncMonth(){
+  var m=ym(),p=m.split("-"),last=new Date(+p[0],+p[1],0).getDate(),d=document.getElementById("date");
+  d.min=m+"-01";d.max=m+"-"+(last<10?"0":"")+last;
+  d.value=(m===today().slice(0,7))?today():m+"-01";
+  document.getElementById("sal").value=sals[m]||"";
+  render();
+}
+document.getElementById("mon").onchange=syncMonth;
+document.getElementById("setsal").onclick=function(){sals[ym()]=parseFloat(document.getElementById("sal").value)||0;store();render()};
+document.getElementById("f").onsubmit=function(e){e.preventDefault();
+  var a=parseFloat(document.getElementById("amt").value);if(!(a>0))return;
+  items.push({id:Date.now(),a:a,c:document.getElementById("cat").value,d:document.getElementById("date").value,n:document.getElementById("note").value.trim()});
+  store();document.getElementById("amt").value="";document.getElementById("note").value="";render()};
+document.getElementById("list").onclick=function(e){var id=e.target.getAttribute("data-id");if(!id)return;
+  items=items.filter(function(x){return String(x.id)!==id});store();render()};
+document.getElementById("cur").onchange=function(e){cur=e.target.value;store();render()};
+load();document.getElementById("cur").value=cur;document.getElementById("mon").value=today().slice(0,7);syncMonth();
+</script>
+<script>
+if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(){})})}
+</script>
+</body>
+</html>
