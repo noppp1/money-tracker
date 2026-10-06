@@ -55,19 +55,19 @@ li button{background:none;border:0;color:var(--bad);font-size:20px;cursor:pointe
 </div>
 
 <div class="card">
-  <label for="sal">Salary for this month</label>
+  <label for="sal">Income for this month</label>
   <div class="row"><input id="sal" type="number" inputmode="decimal" min="0" placeholder="e.g. 30000"><button class="btn" id="setsal" type="button">Save</button></div>
 </div>
 
 <div class="sum">
-  <div><small>Salary</small><b id="sSal">0</b></div>
+  <div><small>Income</small><b id="sSal">0</b></div>
   <div><small>Spent</small><b id="sSp">0</b></div>
-  <div class="save" id="sv"><small>Savings</small><b id="sSv">0</b></div>
+  <div class="save" id="sv"><small>Balance left</small><b id="sSv">0</b></div>
 </div>
 
 <form class="card" id="f">
   <input class="full" id="amt" type="number" inputmode="decimal" step="0.01" min="0" placeholder="Expense amount" required>
-  <select id="cat"><option>Regular grocery shopping</option><option>Extra shopping</option><option>Eating outside</option><option>Home expenses</option><option>Travel</option><option>Study</option><option>Rent</option><option>Bills</option><option>Health</option><option>Other</option></select>
+  <select id="cat"><option>Investment</option><option>Savings</option><option>Daily food</option><option>Eating out</option><option>Groceries</option><option>Entertainment</option><option>Transport and travel</option><option>Shopping</option><option>Home expenses</option><option>Rent</option><option>Classes</option><option>Others</option></select>
   <input id="date" type="date" required>
   <input class="full" id="note" type="text" placeholder="Note (optional)">
   <button class="btn full" type="submit">Add expense</button>
